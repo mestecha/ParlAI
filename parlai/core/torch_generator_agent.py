@@ -47,6 +47,9 @@ from parlai.utils.torch import (
 if torch.cuda.is_available():
     from parlai.ops.ngram_repeat_block import NGramRepeatBlock
 
+import logging
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.WARN)
 
 class SearchBlocklist(object):
     """
@@ -1611,6 +1614,9 @@ class TreeSearch(object):
                         logprobs[beam_id][ngram[-1]] = neginf(logprobs.dtype)
         return logprobs
 
+    def max_check(self, var, step, message):
+        logger.debug(message + f", decoding step #{step}")    
+
     def advance(self, logprobs, step):
         """
         Advance the beam one step.
@@ -1620,6 +1626,7 @@ class TreeSearch(object):
             # penalize all eos probs to make it decode longer
             for hyp_id in range(logprobs.size(0)):
                 logprobs[hyp_id][self.eos] = neginf(logprobs.dtype)
+        self.max_check(logprobs, current_length, f"Max score after EOS penalization is {logprobs.max(dim=-1)}")
 
         if self.scores is None:
             self.scores = torch.zeros(1).type_as(logprobs).to(logprobs.device)
